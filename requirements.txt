@@ -1,0 +1,6 @@
+openai
+langchain
+pydantic
+playwright
+load_dotenv
+google-search-results
