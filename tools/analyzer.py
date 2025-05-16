@@ -91,14 +91,16 @@ def search_release_notes(connector_name: str):
         thread_id=thread.id,
         role="user",
         content=(
-            f"You are an assistant analyzing API changelogs. You must perform the following exact Google search query **without rephrasing**: {connector_name} updates changelog. \n\n. "
+            f"You are an assistant analyzing API changelogs. You must perform the following exact Google search query **without rephrasing**: {connector_name} update changelog. \n\n. "
             f"Then visit all relevant links found in search and analyze each page. "
             f"From the content on the page, please identify: - \n\n The date when each changelog entry or update was posted (e.g., published date or last updated date visible on the page content). \n - The source URL of the page (this will be provided)\n. "
+            f"Many changelogs are grouped under monthly or dated headings (e.g., 'May 2025', 'April 2025').\n"
+            f"If individual entries do **not** have a specific date, infer their date from the nearest **section heading** (such as a month/year label).\n"
             f"Only consider updates or changes **posted between {start_date_serpapi} and {end_date_serpapi}**. Ignore any entries outside this date range.\n\n"
             f"If you cannot find a clear date for an entry, mark the date as 'unknown'."
             f"For each change, include:\n"
             f"- A summary\n"
-            f"- Type: breaking | non-breaking | security\n"
+            f"- Type: breaking | non-breaking\n"
             f"- Severity: low | medium | high | critical\n"
             f"- The source URL for the entry, as specified or linked in the page content (e.g., permalinks, anchor tags, or canonical URLs inside the entry). If a source URL for the entry is not explicitly mentioned, use the URL of the current page\n"
             f"- The published date (2025-05-10) for the entry (based on dates mentioned near the entry or in the content)\n"
@@ -256,6 +258,21 @@ def search_release_notes(connector_name: str):
                     search_results = perform_search(
                         query, provider="serpapi"
                     )  # or "tavily"
+
+                    # Check if the search results are low confidence
+                    if search_results == [] or search_results == None:
+                        outputs.append(
+                            {
+                                "tool_call_id": tool_id,
+                                "output": json.dumps(
+                                    {
+                                        "results": [],
+                                        "note": "Low confidence - skipping search results",
+                                    }
+                                ),
+                            }
+                        )
+                        continue
 
                     organic_links = []
                     link_to_date = {}

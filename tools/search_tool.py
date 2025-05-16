@@ -12,6 +12,13 @@ start_date_serpapi, end_date_serpapi = get_serp_date_range(int(os.getenv("DAYS_D
 start_date_tavily, end_date_tavily = get_tavily_date_range(int(os.getenv("DAYS_DELTA")))
 
 
+def is_low_confidence_result(search_results: dict) -> bool:
+    search_info = search_results.get("search_information", {})
+    query_feedback = search_info.get("query_feedback", {})
+    title = query_feedback.get("title", "")
+    return "aren't many great matches" in title.lower()
+
+
 def search_with_serpapi(query):
     print(f"Searching SerpAPI for: {query}")
     url = os.getenv("SERP_API_URL")
@@ -63,7 +70,12 @@ def search_with_tavily(query):
 
 def perform_search(query, provider="serpapi"):
     if provider == "serpapi":
-        return search_with_serpapi(query)
+        search_results = search_with_serpapi(query)
+
+        if is_low_confidence_result(search_results):
+            print("⚠️ Low confidence search result detected. Skipping.")
+            return []
+        return search_results
     elif provider == "tavily":
         return search_with_tavily(query)
     else:
